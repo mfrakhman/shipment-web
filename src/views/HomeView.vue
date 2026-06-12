@@ -1,15 +1,32 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import LocationSelector from '@/components/LocationSelector.vue'
 import { useAuthStore } from '@/stores/auth'
 import { shippingApi, type CostResult } from '@/api/shipping'
+import { addressApi, type SavedAddress, type SavedAddressRequest } from '@/api/address'
 
 const router = useRouter()
 const auth = useAuthStore()
 
-const origin = ref<{ id: string; label: string } | null>(null)
-const destination = ref<{ id: string; label: string } | null>(null)
+const savedAddresses = ref<SavedAddress[]>([])
+
+async function fetchAddresses() {
+  if (!auth.isLoggedIn) return
+  try { savedAddresses.value = await addressApi.getAll(auth.token) } catch {}
+}
+
+watch(() => auth.isLoggedIn, (loggedIn) => { if (loggedIn) fetchAddresses() }, { immediate: true })
+
+async function onSaveAddress(req: Omit<SavedAddress, 'id'>) {
+  try {
+    const saved = await addressApi.save(req as SavedAddressRequest, auth.token)
+    savedAddresses.value.unshift(saved)
+  } catch {}
+}
+
+const origin = ref<{ id: string; label: string; street?: string } | null>(null)
+const destination = ref<{ id: string; label: string; street?: string } | null>(null)
 const weight = ref<number | null>(null)
 
 const result = ref<CostResult | null>(null)
@@ -34,8 +51,10 @@ async function calculate() {
       {
         originId: Number(origin.value.id),
         originLabel: origin.value.label,
+        originStreet: origin.value.street,
         destinationId: Number(destination.value.id),
         destinationLabel: destination.value.label,
+        destinationStreet: destination.value.street,
         weight: weight.value,
       },
       auth.token,
@@ -83,8 +102,18 @@ function formatCost(cost: number) {
     </header>
 
     <div class="selectors">
-      <LocationSelector label="Origin" @select="(v) => (origin = v)" />
-      <LocationSelector label="Destination" @select="(v) => (destination = v)" />
+      <LocationSelector
+        label="Origin"
+        :saved-addresses="auth.isLoggedIn ? savedAddresses : undefined"
+        @select="(v) => (origin = v)"
+        @save="onSaveAddress"
+      />
+      <LocationSelector
+        label="Destination"
+        :saved-addresses="auth.isLoggedIn ? savedAddresses : undefined"
+        @select="(v) => (destination = v)"
+        @save="onSaveAddress"
+      />
     </div>
 
     <div v-if="auth.isLoggedIn" class="weight-row">

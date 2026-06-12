@@ -1,8 +1,10 @@
 export interface CostRequest {
   originId: number
   originLabel: string
+  originStreet?: string
   destinationId: number
   destinationLabel: string
+  destinationStreet?: string
   weight: number
 }
 
