@@ -1,0 +1,24 @@
+export interface AuthResponse {
+  token: string
+  email: string
+  name: string
+  role: string
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message)
+  return json.data
+}
+
+export const authApi = {
+  login: (email: string, password: string) =>
+    post<AuthResponse>('/auth/login', { email, password }),
+  register: (name: string, email: string, password: string) =>
+    post<AuthResponse>('/auth/register', { name, email, password }),
+}
