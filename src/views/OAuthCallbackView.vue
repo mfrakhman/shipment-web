@@ -37,9 +37,13 @@ onMounted(() => {
 .callback {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #64748b;
-  font-size: 0.9rem;
+  gap: 12px;
+  background: var(--surface);
+  color: var(--on-surface-variant);
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 15px;
 }
 </style>

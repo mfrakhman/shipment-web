@@ -1,10 +1,64 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="en">
   <head>
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
+    <title>LogiTrack – Shipping Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&family=Inter:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --surface: #f7f9fb;
+        --surface-container-lowest: #ffffff;
+        --surface-container-low: #f2f4f6;
+        --surface-container: #eceef0;
+        --surface-container-high: #e6e8ea;
+        --surface-container-highest: #e0e3e5;
+        --on-surface: #191c1e;
+        --on-surface-variant: #454652;
+        --outline: #767684;
+        --outline-variant: #c6c5d5;
+        --primary: #4450b7;
+        --primary-container: #5e6ad2;
+        --on-primary: #ffffff;
+        --on-primary-container: #fdfaff;
+        --on-primary-fixed-variant: #2e3aa2;
+        --primary-fixed: #dfe0ff;
+        --primary-fixed-dim: #bdc2ff;
+        --secondary: #565c80;
+        --secondary-container: #cfd5ff;
+        --tertiary-container: #a56500;
+        --error: #ba1a1a;
+        --error-container: #ffdad6;
+      }
+
+      html, body {
+        min-height: 100vh;
+        background: var(--surface);
+        color: var(--on-surface);
+        font-family: 'Hanken Grotesk', sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #app {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        vertical-align: middle;
+        line-height: 1;
+      }
+    </style>
   </head>
   <body>
     <div id="app"></div>

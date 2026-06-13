@@ -5,6 +5,7 @@ import type { SavedAddress } from '@/api/address'
 
 const props = defineProps<{
   label: string
+  icon?: string
   savedAddresses?: SavedAddress[]
 }>()
 
@@ -49,7 +50,6 @@ async function onProvinceChange() {
   districts.value = []
   subdistricts.value = []
   showSaveInput.value = false
-
   if (!selectedProvince.value) return
   loading.value.cities = true
   try {
@@ -67,7 +67,6 @@ async function onCityChange() {
   districts.value = []
   subdistricts.value = []
   showSaveInput.value = false
-
   if (!selectedCity.value) return
   loading.value.districts = true
   try {
@@ -83,7 +82,6 @@ async function onDistrictChange() {
   selectedSubdistrict.value = ''
   subdistricts.value = []
   showSaveInput.value = false
-
   if (!selectedDistrict.value) return
   loading.value.subdistricts = true
   try {
@@ -109,34 +107,33 @@ async function applysaved(id: string) {
   if (!id) return
   const addr = props.savedAddresses?.find((a) => a.id === id)
   if (!addr) return
-
   error.value = ''
 
-  // Restore province
   selectedProvince.value = addr.provinceId
   loading.value.cities = true
   try { cities.value = await locationApi.getCities(addr.provinceId) }
-  catch { error.value = 'Failed to restore address' ; return }
+  catch { error.value = 'Failed to restore address'; return }
   finally { loading.value.cities = false }
 
-  // Restore city
   selectedCity.value = addr.cityId
   loading.value.districts = true
   try { districts.value = await locationApi.getDistricts(addr.cityId) }
-  catch { error.value = 'Failed to restore address' ; return }
+  catch { error.value = 'Failed to restore address'; return }
   finally { loading.value.districts = false }
 
-  // Restore district
   selectedDistrict.value = addr.districtId
   loading.value.subdistricts = true
   try { subdistricts.value = await locationApi.getSubdistricts(addr.districtId) }
-  catch { error.value = 'Failed to restore address' ; return }
+  catch { error.value = 'Failed to restore address'; return }
   finally { loading.value.subdistricts = false }
 
-  // Restore subdistrict
   selectedSubdistrict.value = String(addr.subdistrictId)
   street.value = addr.street ?? ''
-  emit('select', { id: String(addr.subdistrictId), label: `${addr.subdistrictLabel}, ${addr.cityLabel}`, street: addr.street || undefined })
+  emit('select', {
+    id: String(addr.subdistrictId),
+    label: `${addr.subdistrictLabel}, ${addr.cityLabel}`,
+    street: addr.street || undefined,
+  })
   showSaveInput.value = false
 }
 
@@ -159,7 +156,6 @@ function submitSave() {
   const district = districts.value.find((d) => d.id === selectedDistrict.value)
   const sub = subdistricts.value.find((s) => s.id === selectedSubdistrict.value)
   if (!province || !city || !district || !sub) return
-
   emit('save', {
     label: saveLabel.value.trim(),
     provinceId: province.id,
@@ -178,238 +174,243 @@ function submitSave() {
 </script>
 
 <template>
-  <div class="location-selector">
-    <div class="selector-header">
-      <p class="selector-label">{{ props.label }}</p>
-
-      <div v-if="props.savedAddresses && props.savedAddresses.length > 0" class="saved-row">
-        <select class="saved-select" @change="applysaved(($event.target as HTMLSelectElement).value)">
-          <option value="">Use saved address...</option>
-          <option v-for="a in props.savedAddresses" :key="a.id" :value="a.id">
-            {{ a.label }} — {{ a.subdistrictLabel }}, {{ a.cityLabel }}
-          </option>
-        </select>
-      </div>
+  <div class="loc">
+    <!-- Section header -->
+    <div class="loc-header">
+      <span class="material-symbols-outlined loc-icon">{{ props.icon ?? 'location_on' }}</span>
+      <h2 class="loc-label">{{ props.label }}</h2>
     </div>
 
-    <div class="selects">
-      <div class="select-group">
+    <!-- Saved address picker -->
+    <div v-if="props.savedAddresses && props.savedAddresses.length > 0" class="saved-row">
+      <select class="saved-select" @change="applysaved(($event.target as HTMLSelectElement).value)">
+        <option value="">Use saved address…</option>
+        <option v-for="a in props.savedAddresses" :key="a.id" :value="a.id">
+          {{ a.label }} — {{ a.subdistrictLabel }}, {{ a.cityLabel }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Cascade selects -->
+    <div class="fields">
+      <div class="field">
         <label>Province</label>
-        <select v-model="selectedProvince" @change="onProvinceChange" :disabled="loading.provinces">
-          <option value="">{{ loading.provinces ? 'Loading...' : 'Select province' }}</option>
+        <select v-model="selectedProvince" :disabled="loading.provinces" @change="onProvinceChange">
+          <option value="">{{ loading.provinces ? 'Loading…' : 'Select province' }}</option>
           <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
         </select>
       </div>
 
-      <div class="select-group">
+      <div class="field">
         <label>City</label>
-        <select v-model="selectedCity" @change="onCityChange" :disabled="!selectedProvince || loading.cities">
-          <option value="">{{ loading.cities ? 'Loading...' : 'Select city' }}</option>
+        <select v-model="selectedCity" :disabled="!selectedProvince || loading.cities" @change="onCityChange">
+          <option value="">{{ loading.cities ? 'Loading…' : 'Select city' }}</option>
           <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.type }} {{ c.name }}</option>
         </select>
       </div>
 
-      <div class="select-group">
+      <div class="field">
         <label>District</label>
-        <select v-model="selectedDistrict" @change="onDistrictChange" :disabled="!selectedCity || loading.districts">
-          <option value="">{{ loading.districts ? 'Loading...' : 'Select district' }}</option>
+        <select v-model="selectedDistrict" :disabled="!selectedCity || loading.districts" @change="onDistrictChange">
+          <option value="">{{ loading.districts ? 'Loading…' : 'Select district' }}</option>
           <option v-for="d in districts" :key="d.id" :value="d.id">{{ d.name }}</option>
         </select>
       </div>
 
-      <div class="select-group">
-        <label>Subdistrict</label>
-        <select v-model="selectedSubdistrict" @change="onSubdistrictChange" :disabled="!selectedDistrict || loading.subdistricts">
-          <option value="">{{ loading.subdistricts ? 'Loading...' : 'Select subdistrict' }}</option>
-          <option v-for="s in subdistricts" :key="s.id" :value="s.id">
-            {{ s.name }} ({{ s.postalCode }})
-          </option>
+      <div class="field">
+        <label>Subdistrict / ZIP</label>
+        <select v-model="selectedSubdistrict" :disabled="!selectedDistrict || loading.subdistricts" @change="onSubdistrictChange">
+          <option value="">{{ loading.subdistricts ? 'Loading…' : 'Select subdistrict' }}</option>
+          <option v-for="s in subdistricts" :key="s.id" :value="s.id">{{ s.name }} ({{ s.postalCode }})</option>
         </select>
       </div>
     </div>
 
-    <div class="street-row">
-      <input
+    <!-- Street address -->
+    <div class="field street-field">
+      <label>Street Address (Optional)</label>
+      <textarea
         v-model="street"
-        type="text"
-        placeholder="Street address (optional)"
+        placeholder="e.g. Jl. Jend. Sudirman No. 123"
+        rows="2"
         @input="onStreetInput"
       />
     </div>
 
+    <!-- Save address -->
     <div v-if="selectedSubdistrict && props.savedAddresses !== undefined" class="save-row">
       <button v-if="!showSaveInput" class="save-link" @click="showSaveInput = true">
         + Save this address
       </button>
       <div v-else class="save-input-row">
         <input v-model="saveLabel" type="text" placeholder="Label (e.g. Home)" @keyup.enter="submitSave" />
-        <button class="save-btn" @click="submitSave">Save</button>
-        <button class="cancel-btn" @click="showSaveInput = false; saveLabel = ''">Cancel</button>
+        <button class="btn-save" @click="submitSave">Save</button>
+        <button class="btn-cancel" @click="showSaveInput = false; saveLabel = ''">Cancel</button>
       </div>
     </div>
 
-    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="error" class="err">{{ error }}</p>
   </div>
 </template>
 
 <style scoped>
-.location-selector {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 16px;
+.loc {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.selector-header {
+/* Header */
+.loc-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  gap: 12px;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--surface-container);
 }
-
-.selector-label {
+.loc-icon {
+  font-size: 22px;
+  color: var(--primary-container);
+}
+.loc-label {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 18px;
   font-weight: 600;
-  margin: 0;
-  font-size: 0.9rem;
+  color: var(--on-surface);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #64748b;
-  white-space: nowrap;
+  letter-spacing: 0.03em;
 }
 
+/* Saved address */
+.saved-row { display: flex; }
 .saved-select {
-  padding: 5px 8px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  background: #fff;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  background: var(--surface-container-lowest);
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 13px;
+  color: var(--on-surface-variant);
   cursor: pointer;
   outline: none;
-  color: #475569;
-  max-width: 260px;
+  transition: border-color 0.15s;
 }
+.saved-select:focus { border-color: var(--primary-container); }
 
-.saved-select:focus {
-  border-color: #6366f1;
-}
-
-.selects {
+/* Cascade fields grid */
+.fields {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
-.select-group {
+.field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
-
-.select-group label {
-  font-size: 0.8rem;
-  color: #475569;
+.field label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
 }
-
-.select-group select {
-  padding: 8px 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background: #fff;
-  cursor: pointer;
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 2px;
+  background: var(--surface-container-lowest);
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 14px;
+  color: var(--on-surface);
   outline: none;
-  transition: border-color 0.15s;
+  appearance: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
 }
-
-.select-group select:focus {
-  border-color: #6366f1;
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--primary-container);
+  box-shadow: 0 0 0 1px var(--primary-container);
 }
-
-.select-group select:disabled {
-  background: #f8fafc;
-  color: #94a3b8;
+.field select:disabled {
+  background: var(--surface-container-low);
+  color: var(--outline);
   cursor: not-allowed;
 }
 
-.street-row {
-  margin-top: 10px;
+/* Street field spans full width */
+.street-field {
+  grid-column: 1 / -1;
+}
+.field textarea {
+  resize: none;
+  line-height: 1.5;
 }
 
-.street-row input {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  outline: none;
-  box-sizing: border-box;
-  transition: border-color 0.15s;
-}
-
-.street-row input:focus {
-  border-color: #6366f1;
-}
-
-.save-row {
-  margin-top: 10px;
-}
-
+/* Save address */
+.save-row { display: flex; align-items: center; }
 .save-link {
   background: none;
   border: none;
-  font-size: 0.8rem;
-  color: #6366f1;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary-container);
   cursor: pointer;
   padding: 0;
 }
-
-.save-link:hover {
-  text-decoration: underline;
-}
-
+.save-link:hover { text-decoration: underline; }
 .save-input-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
+  width: 100%;
 }
-
 .save-input-row input {
-  padding: 6px 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  outline: none;
   flex: 1;
-  max-width: 180px;
+  padding: 8px 10px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
 }
-
-.save-input-row input:focus {
-  border-color: #6366f1;
-}
-
-.save-btn {
-  padding: 6px 12px;
-  background: #6366f1;
-  color: #fff;
+.save-input-row input:focus { border-color: var(--primary-container); }
+.btn-save {
+  padding: 8px 14px;
+  background: var(--primary-container);
+  color: var(--on-primary);
   border: none;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  border-radius: 4px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
 }
-
-.cancel-btn {
-  padding: 6px 10px;
+.btn-save:hover { background: var(--primary); }
+.btn-cancel {
+  padding: 8px 12px;
   background: none;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 13px;
+  color: var(--on-surface-variant);
   cursor: pointer;
-  color: #64748b;
+  white-space: nowrap;
+  transition: border-color 0.15s;
 }
+.btn-cancel:hover { border-color: var(--outline); }
 
-.error {
-  margin: 8px 0 0;
-  font-size: 0.8rem;
-  color: #ef4444;
+.err {
+  font-size: 13px;
+  color: var(--error);
 }
 </style>

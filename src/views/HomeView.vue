@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import AppNav from '@/components/AppNav.vue'
+import AppFooter from '@/components/AppFooter.vue'
 import LocationSelector from '@/components/LocationSelector.vue'
 import { useAuthStore } from '@/stores/auth'
 import { shippingApi, type CostResult } from '@/api/shipping'
@@ -66,11 +68,6 @@ async function calculate() {
   }
 }
 
-function logout() {
-  auth.logout()
-  router.push('/login')
-}
-
 function openGooglePopup() {
   const popup = window.open('/api/auth/oauth/google', 'google-oauth', 'width=500,height=620,left=400,top=100')
   if (!popup) return
@@ -88,354 +85,482 @@ function formatCost(cost: number) {
 </script>
 
 <template>
-  <main>
-    <header>
-      <h1>Shipping Calculator</h1>
-      <div class="user-info">
-        <template v-if="auth.isLoggedIn">
-          <span>{{ auth.user?.name }}</span>
-          <button @click="router.push('/history')" class="history-btn">History</button>
-          <button @click="logout" class="logout-btn">Logout</button>
-        </template>
-        <button v-else @click="openGooglePopup" class="history-btn">Login</button>
-      </div>
-    </header>
+  <div class="page">
+    <AppNav />
 
-    <div class="selectors">
-      <LocationSelector
-        label="Origin"
-        :saved-addresses="auth.isLoggedIn ? savedAddresses : undefined"
-        @select="(v) => (origin = v)"
-        @save="onSaveAddress"
-      />
-      <LocationSelector
-        label="Destination"
-        :saved-addresses="auth.isLoggedIn ? savedAddresses : undefined"
-        @select="(v) => (destination = v)"
-        @save="onSaveAddress"
-      />
-    </div>
+    <main class="main">
+      <!-- Hero -->
+      <section class="hero">
+        <h1>Shipping Calculator</h1>
+        <p>Estimate rates and delivery times for your shipment accurately and efficiently.</p>
+      </section>
 
-    <div v-if="auth.isLoggedIn" class="weight-row">
-      <div class="weight-field">
-        <label>Weight (grams)</label>
-        <input v-model.number="weight" type="number" min="1" placeholder="e.g. 1000" />
-      </div>
-      <button
-        class="calc-btn"
-        :disabled="!origin || !destination || !weight || loading"
-        @click="calculate"
-      >
-        {{ loading ? 'Calculating...' : 'Calculate' }}
-      </button>
-    </div>
+      <!-- Calculator form card -->
+      <section class="form-card">
+        <div class="form-grid">
+          <LocationSelector
+            label="Origin"
+            icon="location_on"
+            :saved-addresses="auth.isLoggedIn ? savedAddresses : undefined"
+            @select="(v) => (origin = v)"
+            @save="onSaveAddress"
+          />
+          <LocationSelector
+            label="Destination"
+            icon="local_shipping"
+            :saved-addresses="auth.isLoggedIn ? savedAddresses : undefined"
+            @select="(v) => (destination = v)"
+            @save="onSaveAddress"
+          />
+        </div>
 
-    <div v-else class="login-prompt">
-      <span>Login to calculate shipping cost</span>
-      <button class="login-link" @click="openGooglePopup">Login with Google</button>
-      <button class="login-link" @click="router.push('/login')">Login with email</button>
-    </div>
+        <!-- Action row: weight + calculate (logged in) or login prompt -->
+        <div class="action-row">
+          <template v-if="auth.isLoggedIn">
+            <div class="weight-field">
+              <label class="field-label">Weight (grams)</label>
+              <div class="weight-input">
+                <input
+                  v-model.number="weight"
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 1000"
+                />
+                <span class="unit">g</span>
+              </div>
+            </div>
+            <button
+              class="btn-calc"
+              :disabled="!origin || !destination || !weight || loading"
+              @click="calculate"
+            >
+              <span class="material-symbols-outlined">calculate</span>
+              {{ loading ? 'Calculating…' : 'Calculate Rates' }}
+            </button>
+          </template>
 
-    <p v-if="error" class="error">{{ error }}</p>
-
-    <section v-if="result" class="results">
-      <div class="results-header">
-        <span>{{ result.origin }} → {{ result.destination }}</span>
-        <span class="weight-badge">{{ result.weight }}g</span>
-        <span v-if="result.fromCache" class="cache-badge">cached</span>
-      </div>
-
-      <div class="results-footer">
-        <button class="toggle-btn" @click="showAll = !showAll">
-          {{ showAll ? 'Show regular only' : 'Show all services' }}
-        </button>
-      </div>
-
-      <div class="couriers">
-        <div v-for="c in visibleCouriers(result.couriers)" :key="c.code + c.service" class="courier-card">
-          <div class="courier-top">
-            <span class="courier-name">{{ c.name }}</span>
-            <span class="courier-cost">{{ formatCost(c.cost) }}</span>
-          </div>
-          <div class="courier-bottom">
-            <span class="service-tag">{{ c.service }}</span>
-            <span class="description">{{ c.description }}</span>
-            <span v-if="c.etd" class="etd">{{ c.etd }}</span>
+          <div v-else class="login-prompt">
+            <span class="material-symbols-outlined prompt-icon">lock</span>
+            <span class="prompt-text">Login to calculate shipping costs</span>
+            <button class="btn-login-google" @click="openGooglePopup">
+              <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Login with Google
+            </button>
+            <span class="prompt-or">or</span>
+            <button class="btn-login-email" @click="router.push('/login')">Login with email</button>
           </div>
         </div>
-      </div>
-    </section>
-  </main>
+
+        <div v-if="error" class="error-banner">
+          <span class="material-symbols-outlined">error</span>
+          {{ error }}
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section v-if="result" class="results">
+        <div class="results-meta">
+          <h3 class="results-title">
+            <span class="material-symbols-outlined">list_alt</span>
+            Available Services
+          </h3>
+          <div class="route-pill">
+            <span class="material-symbols-outlined">route</span>
+            {{ result.origin }} → {{ result.destination }}
+            <span class="pill-sep">•</span>
+            {{ result.weight }}g
+            <span v-if="result.fromCache" class="cached-badge">cached</span>
+          </div>
+        </div>
+
+        <div class="results-actions">
+          <button class="toggle-btn" @click="showAll = !showAll">
+            {{ showAll ? 'Show regular only' : 'Show all services' }}
+          </button>
+        </div>
+
+        <div class="couriers-grid">
+          <div
+            v-for="c in visibleCouriers(result.couriers)"
+            :key="c.code + c.service"
+            class="courier-card"
+          >
+            <div class="courier-top">
+              <div class="courier-info">
+                <p class="courier-name">{{ c.name }}</p>
+                <p class="courier-desc">{{ c.description }}</p>
+              </div>
+              <span class="service-badge">{{ c.service }}</span>
+            </div>
+            <div class="courier-bottom">
+              <div class="etd-row" v-if="c.etd">
+                <span class="material-symbols-outlined">schedule</span>
+                <span class="etd">{{ c.etd }}</span>
+              </div>
+              <p class="courier-cost">{{ formatCost(c.cost) }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <AppFooter />
+  </div>
 </template>
 
 <style scoped>
-main {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 40px 20px;
-}
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-}
-
-h1 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.875rem;
-  color: #475569;
-}
-
-.history-btn {
-  padding: 6px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #fff;
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: #6366f1;
-  transition: all 0.15s;
-}
-
-.history-btn:hover {
-  border-color: #6366f1;
-}
-
-.logout-btn {
-  padding: 6px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #fff;
-  font-size: 0.8rem;
-  cursor: pointer;
-  color: #64748b;
-  transition: all 0.15s;
-}
-
-.logout-btn:hover {
-  border-color: #ef4444;
-  color: #ef4444;
-}
-
-.selectors {
+.page {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 20px;
+  background: var(--surface);
 }
 
-.weight-row {
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+/* Hero */
+.hero {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.hero h1 {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+  letter-spacing: -0.02em;
+  color: var(--on-surface);
+}
+.hero p {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--on-surface-variant);
+  max-width: 480px;
+}
+
+/* Form card */
+.form-card {
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+}
+
+/* Action row */
+.action-row {
+  padding-top: 20px;
+  border-top: 1px solid var(--outline-variant);
   display: flex;
   align-items: flex-end;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
+.field-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  display: block;
+  margin-bottom: 6px;
+}
 .weight-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  max-width: 200px;
 }
-
-.weight-field label {
-  font-size: 0.8rem;
-  color: #475569;
+.weight-input {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
-
-.weight-field input {
-  padding: 9px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.875rem;
+.weight-input input {
+  padding: 10px 36px 10px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 2px;
+  background: var(--surface-container-lowest);
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 16px;
+  color: var(--on-surface);
   outline: none;
-  transition: border-color 0.15s;
+  width: 160px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.weight-input input:focus {
+  border-color: var(--primary-container);
+  box-shadow: 0 0 0 1px var(--primary-container);
+}
+.unit {
+  position: absolute;
+  right: 12px;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  pointer-events: none;
 }
 
-.weight-field input:focus {
-  border-color: #6366f1;
-}
-
-.calc-btn {
-  padding: 9px 24px;
-  background: #6366f1;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
+.btn-calc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 32px;
+  background: var(--primary-container);
+  color: var(--on-primary);
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 16px;
   font-weight: 600;
+  border: none;
+  border-radius: 2px;
   cursor: pointer;
-  transition: background 0.15s;
+  box-shadow: 0 4px 12px rgba(94, 106, 210, 0.25);
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
 }
+.btn-calc .material-symbols-outlined { font-size: 20px; }
+.btn-calc:hover:not(:disabled) { background: var(--primary); }
+.btn-calc:active:not(:disabled) { transform: scale(0.98); }
+.btn-calc:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
-.calc-btn:hover:not(:disabled) {
-  background: #4f46e5;
-}
-
-.calc-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
+/* Login prompt */
 .login-prompt {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   padding: 12px 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 0.875rem;
-  color: #64748b;
+  background: var(--surface-container-low);
+  border-radius: 4px;
+  width: 100%;
 }
-
-.login-link {
-  background: none;
-  border: none;
-  color: #6366f1;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
+.prompt-icon {
+  font-size: 20px;
+  color: var(--outline);
 }
-
-.login-link:hover {
-  text-decoration: underline;
+.prompt-text {
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  flex: 1;
 }
-
-.error {
-  font-size: 0.875rem;
-  color: #ef4444;
-  margin: 0 0 16px;
+.prompt-or {
+  font-size: 13px;
+  color: var(--outline);
 }
-
-.results {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.results-header {
+.btn-login-google {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.weight-badge,
-.cache-badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.weight-badge {
-  background: #e0e7ff;
-  color: #4338ca;
-}
-
-.cache-badge {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.results-footer {
   padding: 8px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: flex-end;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-surface);
+  cursor: pointer;
+  transition: background 0.15s;
 }
-
-.toggle-btn {
+.btn-login-google:hover { background: var(--surface-container); }
+.btn-login-email {
   background: none;
   border: none;
-  font-size: 0.75rem;
-  color: #6366f1;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-container);
   cursor: pointer;
   padding: 0;
 }
+.btn-login-email:hover { text-decoration: underline; }
 
-.toggle-btn:hover {
-  text-decoration: underline;
+/* Error */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--error-container);
+  border-radius: 4px;
+  font-size: 13px;
+  color: #93000a;
+}
+.error-banner .material-symbols-outlined { font-size: 18px; color: var(--error); }
+
+/* Results section */
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.couriers {
+.results-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.results-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+.results-title .material-symbols-outlined { color: var(--on-surface-variant); font-size: 22px; }
+
+.route-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--surface-container-low);
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+}
+.route-pill .material-symbols-outlined { font-size: 16px; }
+.pill-sep { color: var(--outline); }
+.cached-badge {
+  padding: 2px 8px;
+  background: #dcfce7;
+  color: #15803d;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.results-actions { display: flex; justify-content: flex-end; }
+.toggle-btn {
+  background: none;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--primary-container);
+  cursor: pointer;
+  padding: 0;
+}
+.toggle-btn:hover { text-decoration: underline; }
+
+/* Courier cards grid */
+.couriers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1px;
-  background: #e2e8f0;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
 }
 
 .courier-card {
-  background: #fff;
-  padding: 14px 16px;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: 4px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: default;
+}
+.courier-card:hover {
+  border-color: var(--primary-container);
+  box-shadow: 0 2px 8px rgba(94, 106, 210, 0.12);
 }
 
 .courier-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
+  gap: 12px;
 }
-
+.courier-info { flex: 1; }
 .courier-name {
-  font-size: 0.8rem;
-  color: #475569;
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--on-surface);
   line-height: 1.3;
 }
-
-.courier-cost {
+.courier-desc {
+  font-size: 14px;
+  color: var(--on-surface-variant);
+  margin-top: 2px;
+}
+.service-badge {
+  padding: 4px 8px;
+  background: var(--surface-container-low);
+  color: var(--on-primary-fixed-variant);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
   font-weight: 700;
-  font-size: 0.95rem;
-  color: #1e293b;
+  letter-spacing: 0.05em;
+  border-radius: 2px;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
 .courier-bottom {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px dashed var(--surface-container);
 }
-
-.service-tag {
-  padding: 2px 7px;
-  background: #f1f5f9;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #334155;
+.etd-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--on-surface-variant);
 }
-
-.description {
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
+.etd-row .material-symbols-outlined { font-size: 16px; }
 .etd {
-  margin-left: auto;
-  font-size: 0.75rem;
-  color: #64748b;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+}
+.courier-cost {
+  font-family: 'Hanken Grotesk', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--primary-container);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .main { padding: 24px 16px; gap: 32px; }
+  .form-grid { grid-template-columns: 1fr; gap: 24px; }
+  .hero h1 { font-size: 24px; }
+  .action-row { flex-direction: column; align-items: stretch; }
+  .btn-calc { justify-content: center; }
+  .weight-input input { width: 100%; }
 }
 </style>
