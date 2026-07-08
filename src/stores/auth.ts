@@ -18,7 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => {
     if (!token.value) return false
     try {
-      const base64 = token.value.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+      const base64 = (token.value.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/')
       const payload = JSON.parse(atob(base64))
       return payload.exp * 1000 > Date.now()
     } catch { return false }
@@ -33,7 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setFromToken(newToken: string) {
     try {
-      const base64 = newToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+      const base64 = (newToken.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/')
       const payload = JSON.parse(atob(base64))
       token.value = newToken
       user.value = {
