@@ -1,8 +1,5 @@
-export interface AuthResponse {
+export interface TokenResponse {
   token: string
-  email: string
-  name: string
-  role: string
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
@@ -18,7 +15,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 export const authApi = {
   login: (email: string, password: string) =>
-    post<AuthResponse>('/auth/login', { email, password }),
+    post<TokenResponse>('/auth/login', { email, password }),
   register: (name: string, email: string, password: string) =>
-    post<AuthResponse>('/auth/register', { name, email, password }),
+    post<TokenResponse>('/auth/register', { name, email, password }),
 }
