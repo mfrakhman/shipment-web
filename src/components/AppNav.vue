@@ -11,16 +11,6 @@ function logout() {
   router.push('/login')
 }
 
-function openGooglePopup() {
-  const popup = window.open('/api/auth/oauth/google', 'google-oauth', 'width=500,height=620,left=400,top=100')
-  if (!popup) return
-  function onMessage(event: MessageEvent) {
-    if (event.origin !== window.location.origin) return
-    if (event.data?.type === 'oauth_success') auth.setFromToken(event.data.token)
-    window.removeEventListener('message', onMessage)
-  }
-  window.addEventListener('message', onMessage)
-}
 </script>
 
 <template>
@@ -48,7 +38,7 @@ function openGooglePopup() {
           <button class="btn-outline" @click="logout">Logout</button>
         </template>
         <template v-else>
-          <button class="btn-outline" @click="openGooglePopup">Login</button>
+          <button class="btn-outline" @click="router.push('/login')">Login</button>
         </template>
       </div>
     </div>
